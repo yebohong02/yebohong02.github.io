@@ -9,7 +9,7 @@
 5- About Area CSS
 6- Qualification Area CSS 
 7- Services Area CSS
-8- Portfolio Area CSS
+8- credit Area CSS
 9- Testimonials Area CSS
 10- Blog Area CSS
 11- Contact Area CSS
@@ -583,7 +583,7 @@ header #menu-btn:hover{
 
 
 /*--------------------- 7- Services Area CSS (Start) ---------------------*/
-.service .box-container{
+.learning .box-container{
     display: -webkit-box;
     display: -ms-flexbox;
     display: flex;
@@ -598,7 +598,7 @@ header #menu-btn:hover{
     gap: 1.5rem;
 }
 
-.service-item{
+.learning-item{
     -webkit-box-flex: 1;
     -ms-flex: 1 1 33rem;
         flex: 1 1 33rem;
@@ -613,28 +613,28 @@ header #menu-btn:hover{
             transition: all 0.5s linear;
 }
 
-.service-item:hover{
+.learning-item:hover{
     background-color: var(--purple);
 }
 
-.service-item i{
+.learning-item i{
     color: var(--white);
     font-size: 4rem;
 }
 
-.service-item h3{
+.learning-item h3{
     font-size: 2rem;
     color: var(--white);
     padding: 1.5rem 0;
 }
 
-.service-item p{
+.learning-item p{
     font-size: 1.6rem;
     color: var(--grey);
     line-height: 1.6;
 }
 
-.service-item:hover p{
+.learning-item:hover p{
     color: var(--white);
 }
 
@@ -642,7 +642,7 @@ header #menu-btn:hover{
 
 
 
-/*--------------------- 8- Portfolio Area CSS (Start) ---------------------*/
+/*--------------------- 8- credit Area CSS (Start) ---------------------*/
 .controls{
     display: -webkit-box;
     display: -ms-flexbox;
@@ -670,7 +670,7 @@ header #menu-btn:hover{
     color: var(--white);
 }
 
-.portfolio .box-container{
+.credit .box-container{
     display: -ms-grid;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(33rem, 1fr));
@@ -678,20 +678,20 @@ header #menu-btn:hover{
     padding: 2rem 0; 
 }
 
-.portfolio-item{
+.credit-item{
     border-radius: 0.5rem;
     height: 25rem;
     overflow: hidden;
     position: relative;
 }
 
-.portfolio-item img{
+.credit-item img{
     height: 100%;
     width: 100%;
     object-fit: cover;
 }
 
-.portfolio-item .content{
+.credit-item .content{
     content: '';
     position: absolute;
     top: 10%;
@@ -717,7 +717,7 @@ header #menu-btn:hover{
             transform: scale(0);
 }
 
-.portfolio-item .content h4{
+.credit-item .content h4{
     font-size: 2rem;
     font-weight: bold;
     color: var(--purple);
@@ -732,7 +732,7 @@ header #menu-btn:hover{
             transition: all 0.4s linear;
 }
 
-.portfolio-item .content p{
+.credit-item .content p{
     font-size: 1.8rem;
     font-weight: 400;
     color: var(--white);
@@ -746,7 +746,7 @@ header #menu-btn:hover{
             transition: all 0.4s linear;
 }
 
-.portfolio-item .content .view-btn{
+.credit-item .content .view-btn{
     font-size: 2rem;
     color: var(--purple);
     transform-origin: top;
@@ -761,30 +761,30 @@ header #menu-btn:hover{
     margin-top: 1.5rem;
 }
 
-.portfolio-item:hover .content{
+.credit-item:hover .content{
     -webkit-transform: scale(1);
             transform: scale(1);
 }
 
-.portfolio-item:hover .content h4{
+.credit-item:hover .content h4{
     -webkit-transform: translateY(0);
             transform: translateY(0);
     opacity: 1;
 }
 
-.portfolio-item:hover .content p{
+.credit-item:hover .content p{
     -webkit-transform: translateY(0);
             transform: translateY(0);
     opacity: 1;
 }
 
-.portfolio-item:hover .content .view-btn{
+.credit-item:hover .content .view-btn{
     -webkit-transform: translateY(0);
             transform: translateY(0);
     opacity: 1;
 }
 
-.portfolio-item:hover img{
+.credit-item:hover img{
     -webkit-transform: scale(1.2);
             transform: scale(1.2);
 }
@@ -827,12 +827,12 @@ header #menu-btn:hover{
 }
 
 
-/*--------------------- 8- Portfolio Area CSS (End) ---------------------*/
+/*--------------------- 8- credit Area CSS (End) ---------------------*/
 
 
 
 /*--------------------- 9- Testimonials Area CSS (Start) ---------------------*/
-.testimonial-slider{
+.music-slider{
     position: relative;
     padding-bottom: 4rem;
     overflow: hidden;
