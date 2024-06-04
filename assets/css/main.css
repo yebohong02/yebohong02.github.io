@@ -522,7 +522,7 @@ header #menu-btn:hover{
     gap: 4rem;
 }
 
-.education, .experience{
+.education .experience{
     -webkit-box-flex: 1;
     -ms-flex: 1 1 40rem;
         flex: 1 1 40rem;
