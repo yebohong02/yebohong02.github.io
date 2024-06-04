@@ -1,5 +1,5 @@
 /*--------------- Testimonial Slider ---------------*/ 
-var swiper = new Swiper(".testimonial-slider", {
+var swiper = new Swiper(".music-slider", {
 
     spaceBetween: 20,
     loop:true,
