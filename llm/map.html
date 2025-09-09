@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设备位置图</title>
+    <!-- 百度地图API脚本，需要替换为你的AK -->
+    <script type="text/javascript" src="https://api.map.baidu.com/api?v=1.0&type=webgl&ak=6NypL9pc4ti2U1bxNFLxtffFRCvC7FVR"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        #baiduMap {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="baiduMap"></div>
+
+    <script>
+        // 数据变量
+        let code = "chengdu"; // 默认显示成都
+        let baiduMap = null; // 百度地图实例
+        let points = []; // 存储标点数据
+        let currentPosition = null; // 存储当前位置数据
+
+        // 初始化地图
+        function initMap() {
+            if (window.BMapGL) {
+                baiduMap = new BMapGL.Map(document.getElementById('baiduMap'));
+                baiduMap.enableScrollWheelZoom(true);
+                // 设置自定义样式 ID（替换为你的样式ID）
+                baiduMap.setMapStyleV2({ styleId: '47bc311fac332a8330256edb4469501a' });
+                // 设置成都为中心
+                const chengduWGS84 = new BMapGL.Point(104.06667, 30.66667);
+                const convertor = new BMapGL.Convertor();
+                convertor.translate([chengduWGS84], 1, 5, (data) => {
+                    if (data.status === 0) {
+                        const chengduBD09 = data.points[0];
+                        baiduMap.centerAndZoom(chengduBD09, 12);
+                        getData();
+                    } else {
+                        console.error("成都坐标转换失败");
+                    }
+                });
+            } else {
+                console.error("百度地图 API 未加载");
+            }
+        }
+
+        // 获取数据（替换为实际API调用）
+        function getData() {
+            code = "chengdu";
+            // 模拟API调用，使用fetch替换原getPoint()
+            // 假设API端点为 /api/points，你需要调整
+            fetch('/api/points') // 替换为实际URL
+                .then(response => response.json())
+                .then(res => {
+                    points = res.position
+                        .sort((a, b) => new Date(a.time) - new Date(b.time))
+                        .map((item, index) => ({
+                            ...item,
+                            name: `${index + 1}`,
+                        }));
+                    addBaiduMarkers(points);
+                })
+                .catch(error => {
+                    alert("获取数据失败: " + error.message);
+                });
+        }
+
+        // 添加百度地图标记
+        function addBaiduMarkers(points) {
+            if (!baiduMap) return;
+            // 清除现有覆盖物
+            baiduMap.clearOverlays();
+
+            if (points.length === 0) return;
+
+            // 提取 WGS84 坐标
+            const wgs84Points = points.map(item => new BMapGL.Point(item.lng, item.lat));
+            // 转换为 BD09 坐标
+            const convertor = new BMapGL.Convertor();
+            convertor.translate(wgs84Points, 1, 5, (result) => {
+                if (result.status === 0) {
+                    result.points.forEach((point, index) => {
+                        const marker = new BMapGL.Marker(point);
+                        baiduMap.addOverlay(marker);
+
+                        // 创建信息窗口
+                        const infoWindowContent = `
+                            <div style="max-width: 300px; padding: 10px;">
+                                <h4>${points[index].name}</h4>
+                                <p>时间: ${points[index].time}</p>
+                            </div>
+                        `;
+                        const infoWindow = new BMapGL.InfoWindow(infoWindowContent, {
+                            width: 300,
+                            height: 100,
+                            title: points[index].name,
+                        });
+
+                        // 点击标点显示信息窗口
+                        marker.addEventListener("click", () => {
+                            baiduMap.openInfoWindow(infoWindow, point);
+                        });
+                    });
+
+                    // 调整地图视图以适应所有标点
+                    baiduMap.setViewport(result.points);
+                } else {
+                    console.error("坐标转换失败");
+                    alert("坐标转换失败");
+                }
+            });
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            initMap();
+        };
+    </script>
+</body>
+</html>
