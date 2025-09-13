@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>AI营养随访管理系统（修正版）</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .container { width: 95%; max-width: 1400px; background: rgba(255,255,255,0.98); border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 20px; text-align: center; color: white; }
+        .header h1 { font-size: 2rem; margin-bottom: 6px; }
+        .role-switch { display:flex; justify-content:center; margin-top:10px; }
+        .role-switch select { padding:8px 16px; border-radius:20px; font-weight:bold; }
+        .sub-nav { display: flex; background: white; border-bottom: 2px solid #f0f0f0; }
+        .sub-nav-btn { flex: 1; padding: 12px; background: none; border: none; cursor: pointer; font-size: 1rem; font-weight: bold; transition: all 0.25s; color: #666; }
+        .sub-nav-btn.active { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+        .third-nav { display: flex; background: #f8f9fa; border-bottom: 1px solid #e0e0e0; }
+        .third-nav-btn { flex: 1; padding: 10px; background: none; border: none; cursor: pointer; font-size: 0.95rem; font-weight: bold; color: #555; }
+        .third-nav-btn.active { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; }
+        .content { padding: 30px; min-height: 600px; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .sub-section { display: none; }
+        .sub-section.active { display: block; }
+        .third-section { display: none; }
+        .third-section.active { display: block; }
+        .card { background: white; border-radius: 15px; padding: 25px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.06); border: 1px solid #f0f0f0; }
+        .card h3 { color: #333; margin-bottom: 15px; font-size: 1.25rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display:block; margin-bottom:6px; font-weight:600; color:#444; }
+        input[type=text], input[type=number], input[type=date], select, textarea { width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px; font-size:1rem; }
+        .btn { background: linear-gradient(135deg,#4facfe 0%,#00f2fe 100%); color:white; border:none; padding:10px 18px; border-radius:8px; cursor:pointer; font-weight:700; }
+        .btn-secondary { background: linear-gradient(135deg,#a8edea 0%,#fed6e3 100%); color:#333; }
+        .stats-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:20px; margin-bottom:20px; }
+        .stat-card { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; padding:18px; border-radius:12px; text-align:center; }
+        .patient-list { max-height:400px; overflow-y:auto; }
+        .patient-item { background:#f8f9fa; border:1px solid #e9ecef; border-radius:8px; padding:12px; margin-bottom:10px; cursor:pointer; }
+        .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color:white; margin:4% auto; padding:20px; border-radius:12px; width:90%; max-width:800px; max-height:80vh; overflow-y:auto; }
+        .close { float:right; font-size:28px; cursor:pointer; }
+        .message-board { background:#f0f9f9; border-radius:8px; padding:12px; height:120px; overflow-y:auto; border:1px solid #ccc; }
+        .message { margin-bottom:8px; padding:8px; border-radius:6px; max-width:80%; }
+        .patient-msg { background:#e8f6ff; border-left:4px solid #3aafa9; }
+        .doctor-msg { background:#fff4e6; border-left:4px solid #f29e4c; }
+        .timestamp { font-size:0.75rem; color:#666; margin-top:6px; }
+        .file-list { max-height:200px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:8px; padding:10px; margin-top:10px; }
+        .file-item { padding:8px; border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between; align-items:center; }
+        .file-item:last-child { border-bottom:none; }
+        .error-message { color:#e74c3c; font-size:0.9rem; margin-top:5px; display:none; }
+        @media (max-width:768px){ .container{width:100%;border-radius:0;} }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 AI营养随访管理系统</h1>
+            <div class="role-switch">
+                <select id="roleSelect" onchange="switchRole()">
+                    <option value="doctor">👨‍⚕️ 医师端</option>
+                    <option value="patient">👤 患者端</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- 医师端 -->
+            <div id="doctor" class="section active">
+                <div class="sub-nav">
+                    <button class="sub-nav-btn active" onclick="showDoctorSubSection('work')">工作端</button>
+                    <button class="sub-nav-btn" onclick="showDoctorSubSection('data')">数据管理</button>
+                    <button class="sub-nav-btn" onclick="showDoctorSubSection('research')">科研支持</button>
+                </div>
+
+                <!-- 工作端 -->
+                <div id="doctor-work" class="sub-section active">
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-number" id="statPatients">127</div><div class="stat-label">在管患者</div></div>
+                        <div class="stat-card"><div class="stat-number" id="statAdherence">85%</div><div class="stat-label">随访依从性</div></div>
+                        <div class="stat-card"><div class="stat-number" id="statInterventions">23</div><div class="stat-label">本周干预</div></div>
+                        <div class="stat-card"><div class="stat-number" id="statTargets">76%</div><div class="stat-label">目标达成率</div></div>
+                    </div>
+
+                    <div class="grid">
+                        <div class="card">
+                            <h3>📋 患者管理台账</h3>
+                            <div class="form-group">
+                                <button class="btn" onclick="openNewPatientModal()">+ 新建患者档案</button>
+                                <button class="btn btn-secondary" onclick="exportAllData()">📤 导出数据</button>
+                            </div>
+                            <div class="patient-list" id="patientList"></div>
+                        </div>
+
+                        <div class="card">
+                            <h3>📊 患者详情分析</h3>
+                            <div id="selectedPatient">请从左侧选择患者查看详细信息</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>📤 文件中心（医师）</h3>
+                        <div class="form-group">
+                            <label>上传评估报告/病例文件</label>
+                            <input type="file" id="doctorFileInput">
+                            <button class="btn" onclick="uploadFileToServer('doctor')">上传</button>
+                        </div>
+                        <div class="form-group">
+                            <label>平台接收的患者文件</label>
+                            <div id="doctorReceivedFiles"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>💬 医师 — 患者 聊天</h3>
+                        <div class="grid">
+                            <div>
+                                <label>选择会话患者</label>
+                                <select id="chatPatientSelect" onchange="switchChatPatient()"></select>
+                            </div>
+                            <div>
+                                <label>消息</label>
+                                <div class="message-board" id="chatBoard">暂无消息记录...</div>
+                                <div style="display:flex;gap:8px;margin-top:8px;">
+                                    <input type="text" id="chatInputDoctor" placeholder="输入消息...">
+                                    <button class="btn" onclick="sendChat('doctor')">发送</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>📊 数据可视化仪表板（工作端）</h3>
+                        <div class="chart-container" style="height:320px;"><canvas id="overallChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- 数据管理内容 -->
+                <div id="doctor-data" class="sub-section">
+                    <div class="card">
+                        <h3>📊 数据可视化仪表板</h3>
+                        <div class="chart-container" style="height:320px;"><canvas id="dataOverallChart"></canvas></div>
+                    </div>
+
+                    <div class="grid">
+                        <div class="card">
+                            <h3>📥 数据导出工具</h3>
+                            <div class="form-group"><label>导出范围</label><select id="exportRange"><option>全部患者</option><option>指定患者</option><option>特定疾病类型</option></select></div>
+                            <div class="form-group"><label>时间范围</label><input type="date" id="exportStart"> <input type="date" id="exportEnd"></div>
+                            <div class="form-group"><label>导出格式</label><select id="exportFormat"><option>Excel (.xlsx)</option><option>PDF 报告</option><option>CSV 数据</option></select></div>
+                            <button class="btn" onclick="exportData()">📤 导出数据</button>
+                        </div>
+
+                        <div class="card">
+                            <h3>🔍 数据质量监控</h3>
+                            <div id="dataQualitySummary" style="background:#f8f9fa;padding:12px;border-radius:8px;"></div>
+                            <button class="btn btn-secondary" onclick="viewAnomalies()">🔍 查看异常数据</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 科研支持内容（三级导航） -->
+                <div id="doctor-research" class="sub-section">
+                    <div class="third-nav">
+                        <button class="third-nav-btn active" onclick="showResearchThirdSection('project')">研究项目</button>
+                        <button class="third-nav-btn" onclick="showResearchThirdSection('stat')">统计分析</button>
+                    </div>
+
+                    <!-- 研究项目 -->
+                    <div id="research-project" class="third-section active">
+                        <div class="card">
+                            <h3>🔬 研究项目管理</h3>
+                            <div class="form-group"><label>项目名称</label><input type="text" id="researchName" placeholder="示例：糖尿病营养干预研究"></div>
+                            <div class="form-group"><label>研究类型</label><select id="researchType"><option>横断面研究</option><option>队列研究</option><option>干预研究</option><option>病例对照研究</option></select></div>
+                            <div class="form-group"><label>筛选条件</label><textarea id="researchFilter" rows="3" placeholder="年龄>18; 诊断2型糖尿病; 随访>=3个月"></textarea></div>
+                            <button class="btn" onclick="createResearchProject()">🔬 创建研究项目</button>
+                        </div>
+                    </div>
+
+                    <!-- 统计分析 -->
+                    <div id="research-stat" class="third-section">
+                        <div class="card">
+                            <h3>📈 统计分析工具</h3>
+                            <div class="form-group"><label>选择指标</label><select id="statIndicators" multiple style="height:90px;"><option>BMI变化</option><option>血糖控制</option><option>饮食依从性</option><option>体重变化</option><option>营养素摄入</option></select></div>
+                            <div class="form-group"><label>分组变量</label><select id="statGroup"><option>疾病类型</option><option>年龄组</option><option>性别</option><option>干预方式</option></select></div>
+                            <button class="btn" onclick="generateStatReport()">📊 生成统计报告</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 患者端 -->
+            <div id="patient" class="section">
+                <div class="grid">
+                    <div class="card">
+                        <h3>📱 个人档案设置</h3>
+                        <div class="form-group"><label>姓名</label><input type="text" id="patientNameInput" value="张三"></div>
+                        <div class="form-group"><label>疾病类型</label><select id="patientDisease"><option>糖尿病</option><option>肥胖症</option><option>代谢综合征</option><option>肿瘤康复</option><option>术后康复</option></select></div>
+                        <div class="form-group"><label>营养目标</label><select id="patientGoal"><option>血糖控制</option><option>减脂瘦身</option><option>增肌塑形</option><option>营养均衡</option></select></div>
+                        <button class="btn" onclick="savePatientProfile()">💾 保存档案</button>
+                    </div>
+
+                    <div class="card">
+                        <h3>🍱 饮食拍照打卡 / 上传意见文件（双上传框）</h3>
+                        <div class="form-group"><label>1) 上传饮食图片（AI分析）</label><input type="file" id="foodImageInput" accept="image/*"><button class="btn" onclick="uploadFoodImage()">上传并AI分析</button></div>
+                        <div class="form-group"><label>2) 上传意见/病例文件（可供医师下载）</label><input type="file" id="patientFileInput"><button class="btn" onclick="uploadPatientFile()">上传文件</button></div>
+                        <div id="foodAnalysisArea"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📈 体征记录与趋势</h3>
+                    <div class="grid">
+                        <div>
+                            <div class="form-group">
+                                <label>体重 (kg)</label>
+                                <input type="number" id="inputWeight" placeholder="75.5">
+                                <div class="error-message" id="weightError">请输入体重</div>
+                            </div>
+                            <div class="form-group">
+                                <label>腰围 (cm)</label>
+                                <input type="number" id="inputWaist" placeholder="86">
+                                <div class="error-message" id="waistError">请输入腰围</div>
+                            </div>
+                            <div class="form-group">
+                                <label>血糖 (mmol/L)</label>
+                                <input type="number" id="inputGlucose" placeholder="6.8">
+                                <div class="error-message" id="glucoseError">请输入血糖</div>
+                            </div>
+                            <button class="btn" onclick="recordVitals()">📊 记录数据</button>
+                        </div>
+                        <div>
+                            <div class="chart-container" style="height:300px;"><canvas id="weightChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📬 医生建议与AI反馈</h3>
+                    <div class="ai-suggestion" id="aiSuggestionArea">
+                        <h4>🧠 今日AI建议</h4>
+                        <ul id="aiSuggestionList"></ul>
+                    </div>
+                    <div style="background:#e3f2fd;padding:12px;border-radius:8px;">
+                        <h4>👨‍⚕️ 医生最新建议</h4>
+                        <p id="latestDoctorAdvice">暂无</p>
+                        <small id="latestAdviceTime" style="color:#666"></small>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📂 我的文件</h3>
+                    <div class="form-group">
+                        <label>我上传的病例文件</label>
+                        <div id="patientFiles" class="file-list"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>医师评估报告</label>
+                        <div id="doctorReports" class="file-list"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>💬 患者 — 医师 聊天</h3>
+                    <div class="message-board" id="patientChatBoard">暂无消息记录...</div>
+                    <div style="display:flex;gap:8px;margin-top:8px;"><input type="text" id="chatInputPatient" placeholder="输入消息..."><button class="btn" onclick="sendChat('patient')">发送</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建患者模态框 -->
+    <div id="newPatientModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeNewPatientModal()">&times;</span>
+            <h2>新建患者档案</h2>
+            <div class="form-group"><label>患者姓名</label><input type="text" id="newPatientName"></div>
+            <div class="form-group"><label>年龄</label><input type="number" id="newPatientAge"></div>
+            <div class="form-group"><label>性别</label><select id="newPatientSex"><option>男</option><option>女</option></select></div>
+            <div class="form-group"><label>疾病类型</label><select id="newPatientDisease"><option>糖尿病</option><option>肥胖症</option><option>代谢综合征</option><option>肿瘤</option><option>术后康复</option></select></div>
+            <div class="form-group"><label>基础体重 (kg)</label><input type="number" id="newPatientWeight"></div>
+            <div class="form-group"><label>身高 (cm)</label><input type="number" id="newPatientHeight"></div>
+            <button class="btn" onclick="createPatient()">💾 保存患者档案</button>
+        </div>
+    </div>
+
+    <!-- 发送建议模态框 -->
+    <div id="sendAdviceModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeSendAdviceModal()">&times;</span>
+            <h2>发送建议</h2>
+            <div class="form-group"><label>建议内容</label><textarea id="adviceText" rows="4" placeholder="请输入给患者的建议..."></textarea></div>
+            <button class="btn" onclick="confirmSendAdvice()">发送</button>
+        </div>
+    </div>
+
+    <script>
+        /* ================= 基础数据 ================= */
+        const patients = [
+            {id:'P001', name:'张三', age:45, sex:'男', disease:'糖尿病', lastFollow:'2025-09-03', adherence:'良好', weightHistory:[78.5,77.8,77.2,76.9,76.3,75.8]},
+            {id:'P002', name:'李四', age:50, sex:'女', disease:'肥胖症', lastFollow:'2025-09-02', adherence:'待改善', weightHistory:[95,94,93.5,93,92.5,92]},
+            {id:'P003', name:'王五', age:60, sex:'男', disease:'代谢综合征', lastFollow:'2025-09-01', adherence:'优秀', weightHistory:[82,81.5,81,80.6,80,79.6]}
+        ];
+        const sharedFiles = [];
+	const messages = [];
+        let currentSelectedPatientId = 'P002';
+
+        /* ================= 角色切换 ================= */
+        function switchRole(){
+            const role = document.getElementById('roleSelect').value;
+            document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+            document.getElementById(role).classList.add('active');
+            if(role==='patient') {
+                initWeightChart();
+                renderPatientFiles();
+                renderDoctorReports();
+            }
+        }
+
+        /* ================= 医师端子切换 ================= */
+        function showDoctorSubSection(sub){
+            document.querySelectorAll('.sub-section').forEach(s=>s.classList.remove('active'));
+            document.getElementById('doctor-'+sub).classList.add('active');
+            document.querySelectorAll('.sub-nav-btn').forEach(b=>b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        /* ================= 科研支持三级切换 ================= */
+        function showResearchThirdSection(sub){
+            document.querySelectorAll('.third-section').forEach(s=>s.classList.remove('active'));
+            document.getElementById('research-'+sub).classList.add('active');
+            document.querySelectorAll('.third-nav-btn').forEach(b=>b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        /* ================= 初始渲染 ================= */
+        document.addEventListener('DOMContentLoaded', ()=>{
+            renderPatientList();
+            populateChatPatientSelect();
+            initWeightChart();
+            initOverallChart();
+            initDataCharts();
+            initDataQuality();
+            // 默认日期
+            const end = new Date().toISOString().split('T')[0];
+            const start = new Date(); start.setMonth(start.getMonth()-1);
+            document.getElementById('exportEnd').value = end;
+            document.getElementById('exportStart').value = start.toISOString().split('T')[0];
+            // AI建议
+            const suggestions = ['您的血糖控制良好，继续保持当前饮食模式','建议增加30分钟有氧运动','注意补充膳食纤维，推荐燕麦、蔬菜类'];
+            const list = document.getElementById('aiSuggestionList');
+            suggestions.forEach(s=>{const li=document.createElement('li');li.textContent=s;list.appendChild(li);});
+            // 聊天
+            renderChatBoard();
+        });
+
+        /* ================= 患者管理 ================= */
+        function renderPatientList(){
+            const container = document.getElementById('patientList'); container.innerHTML='';
+            patients.forEach(p=>{
+                const div = document.createElement('div'); div.className='patient-item';
+                div.innerHTML = `<div class="patient-name">${p.name} (ID: ${p.id})</div><div class="patient-info">${p.disease} | 最后随访: ${p.lastFollow} | 依从性: ${p.adherence}</div>`;
+                div.onclick = ()=> selectPatient(p.id);
+                container.appendChild(div);
+            });
+            document.getElementById('statPatients').textContent = patients.length;
+        }
+        function selectPatient(patientId){
+            currentSelectedPatientId = patientId;
+            const p = patients.find(x=>x.id===patientId);
+            const detailDiv = document.getElementById('selectedPatient');
+            detailDiv.innerHTML = `<h4>患者: ${p.name}</h4><div style="background:#f8f9fa;padding:12px;border-radius:8px;margin:12px 0;"><p><strong>基本信息:</strong> ${p.sex}, ${p.age}岁, BMI: ${(p.weightHistory && p.weightHistory.length)?( (p.weightHistory[p.weightHistory.length-1]/((1.7)*(1.7))).toFixed(1) ):'--'}</p><p><strong>诊断:</strong> ${p.disease}</p><p><strong>随访频率:</strong> 每周2次</p><p><strong>当前目标:</strong> 血糖控制 + 减重5kg</p></div><div class="chart-container" style="height:220px;"><canvas id="patientChart"></canvas></div><button class="btn" onclick="openSendAdviceModal()">📤 发送建议</button> <button class="btn btn-secondary" onclick="downloadPatientReport('${p.id}')">📥 下载报告</button>`;
+            setTimeout(initPatientChart,100);
+        }
+
+        /* ================= 新建患者 ================= */
+        function openNewPatientModal(){ document.getElementById('newPatientModal').style.display='block'; }
+        function closeNewPatientModal(){ document.getElementById('newPatientModal').style.display='none'; }
+        function createPatient(){
+            const name = document.getElementById('newPatientName').value.trim();
+            if(!name){ alert('请输入姓名'); return; }
+            const id = 'P' + String(Math.floor(Math.random()*900+100));
+            const age = document.getElementById('newPatientAge').value || '--';
+            const sex = document.getElementById('newPatientSex').value;
+            const disease = document.getElementById('newPatientDisease').value;
+            const weight = document.getElementById('newPatientWeight').value || 0;
+            const height = document.getElementById('newPatientHeight').value || 0;
+            patients.push({id, name, age, sex, disease, lastFollow: new Date().toISOString().split('T')[0], adherence:'未知', weightHistory: weight? [parseFloat(weight)]:[]});
+            renderPatientList(); closeNewPatientModal(); alert('患者档案已创建: ' + name);
+            populateChatPatientSelect();
+        }
+
+        /* ================= 文件 ================= */
+        function uploadFileToServer(uploader){
+            const input = document.getElementById(uploader+'FileInput');
+            if(!input || input.files.length===0){ alert('请先选择文件'); return; }
+            const file = input.files[0];
+            const id = 'F' + Date.now();
+            const patientId = currentSelectedPatientId;
+            const blobUrl = URL.createObjectURL(file);
+            sharedFiles.push({id, filename:file.name, uploader, patientId, date: new Date().toLocaleString(), blobUrl});
+            renderDoctorReceivedFiles();
+            input.value = '';
+            alert('文件上传成功: ' + file.name);
+        }
+        function uploadPatientFile(){
+            const input = document.getElementById('patientFileInput');
+            if(!input || input.files.length===0){ alert('请先选择文件'); return; }
+            const file = input.files[0];
+            const patientName = document.getElementById('patientNameInput').value || patients[0].name;
+            const p = patients.find(pp=>pp.name===patientName) || patients[0];
+            const id = 'F' + Date.now();
+            const blobUrl = URL.createObjectURL(file);
+            sharedFiles.push({id, filename:file.name, uploader:'patient', patientId:p.id, date:new Date().toLocaleString(), blobUrl});
+            renderDoctorReceivedFiles(); 
+            renderPatientFiles();
+            input.value=''; 
+            alert('文件上传成功并已发送给医师: '+file.name);
+        }
+        function renderDoctorReceivedFiles(){
+            const container = document.getElementById('doctorReceivedFiles'); container.innerHTML='';
+            if(sharedFiles.length===0){ container.innerHTML='<p style="color:#666">暂无文件</p>'; return; }
+            sharedFiles.forEach(f=>{
+                const div = document.createElement('div'); div.style.padding='8px'; div.style.borderBottom='1px solid #eee';
+                div.innerHTML = `<div><strong>${f.filename}</strong> <small style="color:#666">[${f.date}]</small></div><div>患者ID: ${f.patientId} | 上传者: ${f.uploader}</div><div style="margin-top:6px;"><button class="btn" onclick="downloadSharedFile('`+f.id+`')">下载</button> <button class="btn btn-secondary" onclick="deleteSharedFile('`+f.id+`')">删除</button></div>`;
+                container.appendChild(div);
+            });
+        }
+        function renderPatientFiles(){
+            const container = document.getElementById('patientFiles'); container.innerHTML='';
+            const patientName = document.getElementById('patientNameInput').value || patients[0].name;
+            const p = patients.find(pp=>pp.name===patientName) || patients[0];
+            const patientFiles = sharedFiles.filter(f=>f.patientId===p.id && f.uploader==='patient');
+            
+            if(patientFiles.length===0){ container.innerHTML='<p style="color:#666">暂无文件</p>'; return; }
+            
+            patientFiles.forEach(f=>{
+                const div = document.createElement('div'); div.className='file-item';
+                div.innerHTML = `<span>${f.filename}</span><button class="btn" onclick="downloadSharedFile('`+f.id+`')">下载</button>`;
+                container.appendChild(div);
+            });
+        }
+        function renderDoctorReports(){
+            const container = document.getElementById('doctorReports'); container.innerHTML='';
+            const patientName = document.getElementById('patientNameInput').value || patients[0].name;
+            const p = patients.find(pp=>pp.name===patientName) || patients[0];
+            const doctorFiles = sharedFiles.filter(f=>f.patientId===p.id && f.uploader==='doctor');
+            
+            if(doctorFiles.length===0){ container.innerHTML='<p style="color:#666">暂无报告</p>'; return; }
+            
+            doctorFiles.forEach(f=>{
+                const div = document.createElement('div'); div.className='file-item';
+                div.innerHTML = `<span>${f.filename}</span><button class="btn" onclick="downloadSharedFile('`+f.id+`')">下载</button>`;
+                container.appendChild(div);
+            });
+        }
+        function downloadSharedFile(fileId){
+            const f = sharedFiles.find(x=>x.id===fileId);
+            if(!f){ alert('文件不存在'); return; }
+            const a = document.createElement('a'); a.href = f.blobUrl; a.download = f.filename; document.body.appendChild(a); a.click(); a.remove();
+        }
+        function deleteSharedFile(fileId){
+            const idx = sharedFiles.findIndex(x=>x.id===fileId); 
+            if(idx>-1){ 
+                sharedFiles.splice(idx,1); 
+                renderDoctorReceivedFiles(); 
+                renderPatientFiles();
+                renderDoctorReports();
+            }
+        }
+
+        /* ================= 聊天 ================= */
+        function populateChatPatientSelect(){
+            const sel = document.getElementById('chatPatientSelect'); sel.innerHTML='';
+            patients.forEach(p=>{ const opt=document.createElement('option'); opt.value=p.id; opt.textContent = p.name + ' ('+p.id+')'; sel.appendChild(opt); });
+            if(currentSelectedPatientId) sel.value = currentSelectedPatientId;
+        }
+        function switchChatPatient(){ currentSelectedPatientId = document.getElementById('chatPatientSelect').value; renderChatBoard(); }
+        function addMessageToStore(patientId, sender, text){ messages.push({patientId, sender, text, time:new Date().toLocaleString()}); }
+        function renderChatBoard(){
+            const board = document.getElementById('chatBoard'); const pb = document.getElementById('patientChatBoard'); board.innerHTML=''; pb.innerHTML='';
+            const patientMsgs = messages.filter(m=>m.patientId===currentSelectedPatientId);
+            if(patientMsgs.length===0){ board.innerHTML='<p style="color:#777">暂无消息记录...</p>'; pb.innerHTML='<p style="color:#777">暂无消息记录...</p>'; return; }
+            patientMsgs.forEach(m=>{
+                const div = document.createElement('div'); div.className='message '+(m.sender==='patient'?'patient-msg':'doctor-msg'); div.innerHTML = `<div>${(m.sender==='patient'?'患者':'医师')}: ${m.text}</div><div class="timestamp">${m.time}</div>`;
+                board.appendChild(div);
+                const div2 = div.cloneNode(true); pb.appendChild(div2);
+            });
+            board.scrollTop = board.scrollHeight; pb.scrollTop = pb.scrollHeight;
+        }
+        function sendChat(role){
+            const input = document.getElementById(role==='doctor'?'chatInputDoctor':'chatInputPatient');
+            const text = input.value.trim(); if(!text){ alert('请输入消息！'); return; }
+            const pid = currentSelectedPatientId || patients[0].id;
+            addMessageToStore(pid, role==='doctor'?'doctor':'patient', text);
+            renderChatBoard(); input.value='';
+            if(role==='doctor'){ document.getElementById('latestDoctorAdvice').textContent = text; document.getElementById('latestAdviceTime').textContent = new Date().toLocaleString(); }
+        }
+
+        /* ================= 体征 & 图表 ================= */
+        function recordVitals(){
+            let hasError = false;
+            
+            // 验证体重
+            const weight = document.getElementById('inputWeight').value;
+            if(!weight){
+                document.getElementById('weightError').style.display = 'block';
+                hasError = true;
+            } else {
+                document.getElementById('weightError').style.display = 'none';
+            }
+            
+            // 验证腰围
+            const waist = document.getElementById('inputWaist').value;
+            if(!waist){
+                document.getElementById('waistError').style.display = 'block';
+                hasError = true;
+            } else {
+                document.getElementById('waistError').style.display = 'none';
+            }
+            
+            // 验证血糖
+            const glucose = document.getElementById('inputGlucose').value;
+            if(!glucose){
+                document.getElementById('glucoseError').style.display = 'block';
+                hasError = true;
+            } else {
+                document.getElementById('glucoseError').style.display = 'none';
+            }
+            
+            if(hasError) return;
+            
+            const w = parseFloat(weight);
+            const p = patients.find(x=>x.id===currentSelectedPatientId) || patients[0]; 
+            p.weightHistory = p.weightHistory || []; 
+            p.weightHistory.push(w); 
+            alert('体征记录已保存'); 
+            initWeightChart(); 
+            selectPatient(p.id);
+        }
+        function initWeightChart(){
+            const ctx = document.getElementById('weightChart'); if(!ctx) return;
+            const p = patients.find(x=>x.id===currentSelectedPatientId) || patients[0]; const labels = ['8周前','6周前','4周前','3周前','2周前','本周']; const data = (p.weightHistory && p.weightHistory.length>=6)? p.weightHistory.slice(-6) : [78.5,77.8,77.2,76.9,76.3,75.8];
+            try{ new Chart(ctx,{type:'line',data:{labels, datasets:[{label:'体重 (kg)', data, borderColor:'#4facfe', backgroundColor:'rgba(79,172,254,0.1)', tension:0.4, fill:true}]}, options:{responsive:true, maintainAspectRatio:false}});}catch(e){console.warn(e);}
+        }
+        function initPatientChart(){
+            const ctx = document.getElementById('patientChart'); if(!ctx) return; const p = patients.find(x=>x.id===currentSelectedPatientId) || patients[0]; const labels = ['第1周','第2周','第3周','第4周']; const data1 = [75,82,88,91]; const data2 = [60,70,78,85];
+            try{ new Chart(ctx,{type:'bar', data:{labels, datasets:[{label:'饮食依从性 (%)', data:data1, backgroundColor:'rgba(79,172,254,0.8)', borderRadius:8},{label:'运动完成度 (%)', data:data2, backgroundColor:'rgba(255,159,64,0.8)', borderRadius:8}]}, options:{responsive:true, maintainAspectRatio:false}});}catch(e){}
+        }
+        function initOverallChart(){ const ctx=document.getElementById('overallChart'); if(!ctx) return; try{ new Chart(ctx,{type:'doughnut', data:{labels:['优秀','良好','待改善','需关注'], datasets:[{data:[45,38,12,5], backgroundColor:['#4facfe','#00f2fe','#ff9f43','#ff6b6b'], borderWidth:0}]}, options:{responsive:true, maintainAspectRatio:false}});}catch(e){} }
+        function initDataCharts(){ const ctx=document.getElementById('dataOverallChart'); if(!ctx) return; try{ new Chart(ctx,{type:'pie', data:{labels:['糖尿病','肥胖','代谢综合征','其他'], datasets:[{data:[50,30,12,8], backgroundColor:['#4facfe','#00f2fe','#ff9f43','#ff6b6b']}]}, options:{responsive:true, maintainAspectRatio:false}});}catch(e){} }
+
+        /* ================= 数据导出 ================= */
+        function exportData(){ const range=document.getElementById('exportRange').value; const start=document.getElementById('exportStart').value; const end=document.getElementById('exportEnd').value; const fmt=document.getElementById('exportFormat').value; alert(`正在导出(${range}) 从 ${start} 到 ${end} 格式:${fmt} (模拟)`); }
+        function exportAllData(){ alert('正在生成Excel报告...（模拟）'); }
+        function initDataQuality(){ document.getElementById('dataQualitySummary').innerHTML = `<p><strong>数据完整性:</strong> 94.2%<br><strong>打卡依从性:</strong> 87.5%<br><strong>异常数据:</strong> 3条待审核<br><strong>最后更新:</strong> ${new Date().toLocaleString()}</p>`; }
+        function viewAnomalies(){ alert('打开异常数据详情（模拟）'); }
+
+        /* ================= 科研 ================= */
+        function createResearchProject(){ const name = document.getElementById('researchName').value.trim(); if(!name){ alert('请填写项目名称'); return; } alert('研究项目已创建: '+name); }
+        function generateStatReport(){ alert('正在生成统计报告（模拟）'); }
+
+        /* ================= 饮食图片上传（非图片拦截） ================= */
+        function uploadFoodImage(){
+            const input = document.getElementById('foodImageInput');
+            if(!input || input.files.length===0){ alert('请先选择图片！'); return; }
+            const file = input.files[0];
+            const validImageTypes = ['image/jpeg','image/png','image/jpg','image/gif'];
+            if(!validImageTypes.includes(file.type)){
+                alert('请上传图片格式文件（如 .jpg、.png、.gif）！');
+                input.value=''; return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e){
+                const area = document.getElementById('foodAnalysisArea');
+                area.innerHTML = `
+                    <p>✅ 图片上传成功，AI分析中...</p>
+                    <img src="${e.target.result}" style="max-width:100%;margin-top:10px;border-radius:8px;" />
+                    <p style="margin-top:10px;color:#555;">AI识别结果：米饭、鸡胸肉、西兰花，估算热量约 480 千卡。</p>
+                `;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        /* ================= 发送建议 / 下载报告 ================= */
+        function openSendAdviceModal(){
+            document.getElementById('sendAdviceModal').style.display='block';
+        }
+        function closeSendAdviceModal(){
+            document.getElementById('sendAdviceModal').style.display='none';
+        }
+        function confirmSendAdvice(){
+            const txt = document.getElementById('adviceText').value.trim();
+            if(!txt){ alert('请输入建议内容'); return; }
+            // 模拟发送
+            addMessageToStore(currentSelectedPatientId,'doctor',txt);
+            renderChatBoard();
+            document.getElementById('latestDoctorAdvice').textContent = txt;
+            document.getElementById('latestAdviceTime').textContent = new Date().toLocaleString();
+            closeSendAdviceModal();
+            alert('建议已发送');
+        }
+        function downloadPatientReport(patientId){
+            const p = patients.find(x=>x.id===patientId);
+            if(!p){ alert('患者不存在'); return; }
+            // 模拟生成报告
+            const report = `患者${p.name}(${p.id})报告\n诊断：${p.disease}\n最后随访：${p.lastFollow}\n依从性：${p.adherence}`;
+            const blob = new Blob([report],{type:'text/plain;charset=utf-8'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `患者${p.name}报告.txt`;
+            a.click();
+        }
+
+        /* ================= 其他 ================= */
+        function savePatientProfile(){ 
+            const name=document.getElementById('patientNameInput').value; 
+            const disease=document.getElementById('patientDisease').value; 
+            const goal=document.getElementById('patientGoal').value; 
+            alert('档案已保存（本地模拟）:'+name+','+disease+','+goal); 
+            renderPatientFiles();
+            renderDoctorReports();
+        }
+        document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'){ document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); } });
+    </script>
+</body>
+</html>
